@@ -99,6 +99,7 @@ role_mappings:
   - name: superadmin claim to superadmin role profile
     role_profile: superadmin
     role_claim_value: superadmin
+    client: "keycloak"
   - name: billing-webservice claim to billing-webservice role profile
     role_profile: billing-webservice
     role_claim_value: billing-webservice

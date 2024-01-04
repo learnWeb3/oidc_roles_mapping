@@ -70,6 +70,7 @@ app_license = "mit"
 # before_install = "oidc_roles_mapping.install.before_install"
 # after_install = "oidc_roles_mapping.install.after_install"
 after_install = "oidc_roles_mapping.setup.install.after_install"
+before_uninstall = "oidc_roles_mapping.setup.uninstall.before_uninstall"
 
 # Uninstallation
 # ------------

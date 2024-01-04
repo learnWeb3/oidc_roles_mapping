@@ -6,7 +6,6 @@ import json
 
 def after_install():
     setup_oidc_roles_mapping()
-    # frappe.db.commit()
  
  
 def parse_yaml():
@@ -121,7 +120,6 @@ def create_role_profile_if_not_exists(role_profile={
     roles = []
     for role in role_profile['roles']:
         roles.append( {"role": role, "read": 1, "write": 1, "create": 1, "delete": 1},)
-    print(role)
     try: 
         new_role_profile = frappe.new_doc("Role Profile")
         new_role_profile.update({
@@ -137,14 +135,16 @@ def create_role_mapping(
     role_mapping={
         "name": "superadmin claim to superadmin role profile",
         "role_profile": "superadmin",
-        "role_claim_value": "superadmin"
+        "role_claim_value": "superadmin",
+        "client": "keycloak",
 }): 
     try: 
         new_role_mapping = frappe.new_doc("Role Mapping")
         new_role_mapping.update({
             "role_mapping_name": role_mapping['name'],
             "role_profile": role_mapping['role_profile'],
-            "role_claim_value": role_mapping['role_claim_value']
+            "role_claim_value": role_mapping['role_claim_value'],
+            "social_login_key_name": role_mapping['client']
         })
         new_role_mapping.save()
         print(f"role mapping between role profile {role_mapping['role_profile']} and role claim value {role_mapping['role_claim_value']} created with success")
@@ -171,7 +171,7 @@ def create_social_login_key(social_login_key={
         "role_claim": "roles",
         "secret_key": "",
         "audience": "",
-        "offline_validate": "",
+        "offline_validate": 0,
 }):
     
     try: 
