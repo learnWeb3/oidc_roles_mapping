@@ -41,7 +41,7 @@ roles:
           share: 1
 
 role_profiles:
-  - name: webservice 
+  - name: billing-webservice
     roles: 
       - Invoice Manager
 
@@ -94,3 +94,11 @@ role_profiles:
       - "Translator"
       - "Website Manager"
       - "Workspace Manager"
+
+role_mappings: 
+  - name: superadmin claim to superadmin role profile
+    role_profile: superadmin
+    role_claim_value: superadmin
+  - name: billing-webservice claim to billing-webservice role profile
+    role_profile: billing-webservice
+    role_claim_value: billing-webservice

@@ -133,6 +133,24 @@ def create_role_profile_if_not_exists(role_profile={
     except Exception as err:
         print(f"error creating role profile {role_profile['name']} due to error {err} type {type(err)}")
     
+def create_role_mapping(
+    role_mapping={
+        "name": "superadmin claim to superadmin role profile",
+        "role_profile": "superadmin",
+        "role_claim_value": "superadmin"
+}): 
+    try: 
+        new_role_mapping = frappe.new_doc("Role Mapping")
+        new_role_mapping.update({
+            "role_mapping_name": role_mapping['name'],
+            "role_profile": role_mapping['role_profile'],
+            "role_claim_value": role_mapping['role_claim_value']
+        })
+        new_role_mapping.save()
+        print(f"role mapping between role profile {role_mapping['role_profile']} and role claim value {role_mapping['role_claim_value']} created with success")
+    except Exception as err:
+        print(f"error creating role mapping between role profile {role_mapping['role_profile']} and role claim value {role_mapping['role_claim_value']} due to error {err} type {type(err)}")
+    
 
 def create_social_login_key(social_login_key={
         "name":  "keycloak", # provider_name
@@ -180,6 +198,7 @@ def create_social_login_key(social_login_key={
         # create extensions to handle roles
         new_social_login_key_extension = frappe.new_doc("Social Login Key Extension")
         new_social_login_key_extension.update({
+            "social_login_key_extension_name": f"extension for provider {social_login_key['name']}",
             "social_login_key_name": social_login_key['name'],
             "role_claim": social_login_key['role_claim'],
             "audience": social_login_key['audience'],
@@ -218,13 +237,33 @@ def initialize_social_login_key_extension_doctype():
         doc_type = frappe.get_doc(doctype_definition)
         doc_type.insert(ignore_permissions=True)
 
-        print("DocType initialized successfully.")
+        print("Social Login Key Extension DocType initialized successfully.")
 
     except frappe.DuplicateEntryError:
-        print("DocType already exists.")
+        print("Social Login Key Extension DocType already exists.")
 
     except Exception as e:
-        print(f"Error initializing DocType: {e}")
+        print(f"Error initializing Social Login Key Extension DocType: {e}")
+        
+def initialize_role_mapping_doctype():
+    try:
+        JSON_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        FILE_PATH = os.path.join(JSON_BASE_DIR, "../doctype/role_mapping/role_mapping.json")
+        # Read the JSON file
+        with open(FILE_PATH, 'r') as file:
+            doctype_definition = json.load(file)
+
+        # Create the DocType
+        doc_type = frappe.get_doc(doctype_definition)
+        doc_type.insert(ignore_permissions=True)
+
+        print("Role Mapping DocType initialized successfully.")
+
+    except frappe.DuplicateEntryError:
+        print("Role Mapping DocType already exists.")
+
+    except Exception as e:
+        print(f"Error initializing Role Mapping DocType: {e}")
 
 
 def setup_oidc_roles_mapping():
@@ -232,20 +271,26 @@ def setup_oidc_roles_mapping():
     roles = yaml_content['roles']
     role_profiles = yaml_content['role_profiles']
     social_login_keys = yaml_content['oidc']['clients']
+    role_mappings = yaml_content['role_mappings']
     
     # initialize_social_login_key_extension_doctype()
+    # initialize_role_mapping_doctype()
 
     # # seed roles
     # for role in roles:
     #     create_role_if_not_exists(role)
     
-    # # seed role profiles
-    # for role_profile in role_profiles:
-    #     create_role_profile_if_not_exists(role_profile)
+    # seed role profiles
+    for role_profile in role_profiles:
+        create_role_profile_if_not_exists(role_profile)
         
     # seed social login keys
-    for social_login_key in social_login_keys:
-        create_social_login_key(social_login_key)
+    # for social_login_key in social_login_keys:
+    #     create_social_login_key(social_login_key)
+    
+    # seed role mapping
+    for role_mapping in role_mappings:
+        create_role_mapping(role_mapping)
     
         
     
