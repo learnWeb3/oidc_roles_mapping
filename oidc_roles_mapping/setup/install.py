@@ -273,20 +273,20 @@ def setup_oidc_roles_mapping():
     social_login_keys = yaml_content['oidc']['clients']
     role_mappings = yaml_content['role_mappings']
     
-    # initialize_social_login_key_extension_doctype()
-    # initialize_role_mapping_doctype()
+    initialize_social_login_key_extension_doctype()
+    initialize_role_mapping_doctype()
 
-    # # seed roles
-    # for role in roles:
-    #     create_role_if_not_exists(role)
+    # seed roles
+    for role in roles:
+        create_role_if_not_exists(role)
     
     # seed role profiles
     for role_profile in role_profiles:
         create_role_profile_if_not_exists(role_profile)
         
     # seed social login keys
-    # for social_login_key in social_login_keys:
-    #     create_social_login_key(social_login_key)
+    for social_login_key in social_login_keys:
+        create_social_login_key(social_login_key)
     
     # seed role mapping
     for role_mapping in role_mappings:
