@@ -1,0 +1,96 @@
+oidc:
+  clients: 
+    - name:  "keycloak" # provider_name
+      enable: 1 # enable_social_login
+      social_login_provider: "Custom"
+      client_id: "andrew-erp"
+      client_secret: "rL62kGS9ip6vptERbyEXen140c9aHDLO"
+      base_url: "https://login.students-epitech.ovh/realms/andrew"
+      base64icon: "" # icon
+      allow_sign_up: 1 # sign_ups values Allow Deny
+      authorize_uri: "/protocol/openid-connect/auth" # authorize_uri
+      access_token_uri: "/protocol/openid-connect/token" # access_token_url
+      redirect_url: "http://localhost:8000/api/method/frappe.integrations.oauth2_logins.custom/keycloak"
+      api_endpoint: "https://login.students-epitech.ovh/realms/andrew/protocol/openid-connect/userinfo"
+      api_endpoint_args: ""
+      auth_url_data: "{\"response_type\": \"code\", \"scope\": \"openid profile email\"}"
+      user_claim: "email"  #  user_id_property
+      role_claim: "roles"
+      secret_key: ""
+      audience: "andrew-erp"
+      offline_validate: 0
+
+
+roles: 
+  - name: Invoice Manager 
+    rights: 
+      - doc_type: Sales Invoice
+        permissions: 
+          read: 1
+          write: 1
+          create: 1
+          delete: 1
+          submit: 1
+          cancel: 1
+          amend: 1
+          print: 1
+          email: 1
+          report: 1
+          import: 1
+          export: 1
+          share: 1
+
+role_profiles:
+  - name: webservice 
+    roles: 
+      - Invoice Manager
+
+  - name: superadmin
+    roles: 
+      - "Academics User"
+      - "Accounts Manager"
+      - "Accounts User"
+      - "Agriculture Manager"
+      - "Agriculture User"
+      - "Analytics"
+      - "Auditor"
+      - "Blogger"
+      # - "Customer"
+      - "Dashboard Manager"
+      - "Delivery Manager"
+      - "Delivery User"
+      # - "Employee"
+      - "Fleet Manager"
+      - "Fulfillment User"
+      - "HR Manager"
+      - "HR User"
+      - "Inbox User"
+      # - "Invoice Manager"
+      - "Item Manager"
+      - "Knowledge Base Contributor"
+      - "Knowledge Base Editor"
+      - "Maintenance Manager"
+      - "Maintenance User"
+      - "Manufacturing Manager"
+      - "Manufacturing User"
+      - "Newsletter Manager"
+      - "Prepared Report User"
+      - "Projects Manager"
+      - "Projects User"
+      - "Purchase Manager"
+      - "Purchase Master Manager"
+      - "Purchase User"
+      - "Quality Manager"
+      - "Report Manager"
+      - "Sales Manager"
+      - "Sales Master Manager"
+      - "Sales User"
+      - "Script Manager"
+      - "Stock Manager"
+      - "Stock User"
+      # - "Supplier"
+      - "Support Team"
+      - "System Manager"
+      - "Translator"
+      - "Website Manager"
+      - "Workspace Manager"
