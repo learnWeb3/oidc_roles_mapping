@@ -17,6 +17,8 @@ app_license = "mit"
 # web_include_css = "/assets/oidc_roles_mapping/css/oidc_roles_mapping.css"
 # web_include_js = "/assets/oidc_roles_mapping/js/oidc_roles_mapping.js"
 
+# include custom callback.py
+
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "oidc_roles_mapping/public/scss/website"
 
@@ -161,9 +163,9 @@ before_uninstall = "oidc_roles_mapping.setup.uninstall.before_uninstall"
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "oidc_roles_mapping.event.get_events"
-# }
+override_whitelisted_methods = {
+	"frappe.integrations.oauth2_logins.custom": "oidc_roles_mapping.overrides.oauth2_logins.custom"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
@@ -183,7 +185,7 @@ before_uninstall = "oidc_roles_mapping.setup.uninstall.before_uninstall"
 
 # Request Events
 # ----------------
-before_request = ["oidc_roles_mapping.custom_auth.verify_jwt_token"]
+# before_request = ["oidc_roles_mapping.custom_auth.verify_jwt_token"]
 # after_request = ["oidc_roles_mapping.utils.after_request"]
 
 # Job Events

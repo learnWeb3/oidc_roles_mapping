@@ -130,6 +130,7 @@ def create_role_mapping(
         "role_profile": "superadmin",
         "role_claim_value": "superadmin",
         "client": "keycloak",
+        "power": 10
 }): 
     try: 
         new_role_mapping = frappe.new_doc("Role Profile Mapping")
@@ -137,7 +138,8 @@ def create_role_mapping(
             "role_profile_mapping_name": role_profile_mapping['name'],
             "role_profile": role_profile_mapping['role_profile'],
             "role_claim_value": role_profile_mapping['role_claim_value'],
-            "social_login_key_name": role_profile_mapping['client']
+            "social_login_key_name": role_profile_mapping['client'],
+            "power": role_profile_mapping['power']
         })
         new_role_mapping.save()
         print(f"role mapping between role profile {role_profile_mapping['role_profile']} and role claim value {role_profile_mapping['role_claim_value']} created with success")

@@ -9,10 +9,10 @@ import requests
 import jwt
 
 import frappe
-import frappe.utils
 import os.path
 
 #frappe.utils.logger.set_log_level("DEBUG")
+
 
 @frappe.whitelist(allow_guest=True)
 def custom(code: str, state: str | dict):
@@ -26,7 +26,6 @@ def custom(code: str, state: str | dict):
     """
 
     state = json.loads(base64.b64decode(state).decode("utf-8"))
-    base_dir = os.path.dirname(os.path.abspath(__file__))
 
     if not state or not state["token"]:
         frappe.respond_as_web_page(_("Invalid request"), _("Token is missing."), http_status_code=417)
@@ -42,13 +41,13 @@ def custom(code: str, state: str | dict):
     provider_name = request_path_components[3]
 
     # Gets the document of the Social Login Key configuration.
-    social_login_provider = frappe.get_doc({"doctype": "Social Login Key", "name": provider_name})
+    social_login_provider = frappe.get_last_doc("Social Login Key", filters={"provider_name": provider_name})
     
     # Gets the document of the Social Login Key Extension matching the Social Login Key  configuration
-    social_login_key_extension = frappe.get_doc({'doctype': 'Social Login Key Extension',  'social_login_key_extension_name': provider_name})
+    social_login_key_extension = frappe.get_last_doc('Social Login Key Extension',  filters={'social_login_key_name': provider_name})
     
     # extract claims name
-    user_id_claim_name = social_login_provider.user_id_property or "sub"
+    user_claim_name = social_login_provider.user_id_property or "sub"
     roles_claim_name = social_login_key_extension.role_claim or "roles"
     given_name_claim_name = social_login_key_extension.given_name_claim or "given_name"
     family_name_claim_name = social_login_key_extension.family_name_claim or "family_name"
@@ -69,10 +68,11 @@ def custom(code: str, state: str | dict):
         data=token_request_data,
     ).json()
 
-    token = jwt.decode(token_response["id_token"], audience, options={"verify_signature": False})
+
+    token = jwt.decode(token_response["access_token"], audience, options={"verify_signature": False})
     
     # extract claim values 
-    email = token[user_id_claim_name]
+    email = token[user_claim_name]
 
     # Creates the user if does not exsit, otherwise updates the data according to the claims of the token.
     if frappe.db.exists("User", {"email": email}):
@@ -122,32 +122,58 @@ def custom(code: str, state: str | dict):
     
 def get_role_profile_mapping(provider_name, token, roles_claim_name, user):
     # Gets the documents of the Role Profile Mapping matching the Social Login Key configuration
-    role_profile_mappings = frappe.get_list("Role Profile Mapping", filters={'social_login_key_extension_name': provider_name })
+    role_profile_mappings = frappe.get_list(
+        "Role Profile Mapping", 
+        filters={'social_login_key_name': provider_name },  
+        fields=['role_claim_value', 'power', 'name', 'role_profile', 'social_login_key_name', 'role_profile_mapping_name'], 
+        ignore_permissions=True
+    )
     
+    # print(role_profile_mappings)
     # create a dict mapping role_claim_value => role_profile_mapping
     role_profile_mappings_claim_value_map = {}
     
     for role_profile_mapping in role_profile_mappings:
-        role_profile_mappings_claim_value_map[role_profile_mapping.role_claim_value]
+        role_profile_mappings_claim_value_map[role_profile_mapping.role_claim_value] = role_profile_mapping
         
     # extract matching Role Profile Mapping to the roles claims in the token
-    matching_role_profile_mappings = filter(lambda role_claim_value: role_claim_value in role_profile_mappings_claim_value_map, token[roles_claim_name])
+    matching_role_profile_claim_values = list(
+        filter(
+            lambda role_claim_value: role_claim_value in role_profile_mappings_claim_value_map, 
+            extract_role_claim_value(roles_claim_name, token)
+        )
+    )
     
-    if not len(matching_role_profile_mappings):
+    if not len(matching_role_profile_claim_values):
         frappe.respond_as_web_page(_("Not Allowed"), _("User {0} is disabled").format(user.email))
         return False
     
     # create a dict mapping power => matching_role_profile_mapping
     matching_role_profile_mappings_power_map = {}
     
-    for matching_role_profile_mapping in matching_role_profile_mappings:
-        matching_role_profile_mappings_power_map[matching_role_profile_mapping.power]
+    for matching_role_profile_claim_value in matching_role_profile_claim_values:
+        matching_role_profile_mappings_power_map[role_profile_mappings_claim_value_map[matching_role_profile_claim_value].power] = role_profile_mappings_claim_value_map[matching_role_profile_claim_value]
         
     # user role profile mapping match the last item of the dict
-    role_profile_mapping = matching_role_profile_mappings_power_map.values()[len(matching_role_profile_mappings_power_map.values()) - 1]
+    role_profile_mapping = list(
+            matching_role_profile_mappings_power_map.values()
+        )[
+            len(
+                list(
+                    matching_role_profile_mappings_power_map.values()
+                )
+            ) - 1
+        ]
     
     print(f"found role profile mapping {role_profile_mapping.role_profile_mapping_name}, role profile is {role_profile_mapping.role_profile}")
     return role_profile_mapping
+
+def extract_role_claim_value(roles_claim_name, token):
+    splitted_claim_name_parts = roles_claim_name.split('.')
+    temp = token
+    for splitted_claim_name_part in splitted_claim_name_parts:
+        temp = temp[splitted_claim_name_part]
+    return temp
 
 def redirect_post_login(desk_user: bool, redirect_to: str):
     frappe.local.response["type"] = "redirect"
@@ -157,4 +183,3 @@ def redirect_post_login(desk_user: bool, redirect_to: str):
         redirect_to = frappe.utils.get_url(desk_uri if desk_user else "/me")
 
     frappe.local.response["location"] = redirect_to
-

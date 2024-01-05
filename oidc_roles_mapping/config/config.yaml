@@ -15,7 +15,7 @@ oidc:
       api_endpoint_args: ""
       auth_url_data: "{\"response_type\": \"code\", \"scope\": \"openid profile email\"}"
       user_claim: "email"  #  user_id_property
-      role_claim: "roles"
+      role_claim: "realm_access.roles"
       secret_key: ""
       audience: "andrew-erp"
       offline_validate: 0
