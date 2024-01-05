@@ -1,6 +1,6 @@
-## Oidc Roles Profile Mapping
+## Oidc Roles Mapping
 
-OIDC roles profile mapping capabilities
+Adding OIDC roles mapping capabilities to Social Login Key DocType.
 
 #### License
 
