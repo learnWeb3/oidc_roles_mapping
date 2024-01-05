@@ -10,6 +10,7 @@ import jwt
 
 import frappe
 import frappe.utils
+import os.path
 
 #frappe.utils.logger.set_log_level("DEBUG")
 
@@ -25,6 +26,7 @@ def custom(code: str, state: str | dict):
     """
 
     state = json.loads(base64.b64decode(state).decode("utf-8"))
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
     if not state or not state["token"]:
         frappe.respond_as_web_page(_("Invalid request"), _("Token is missing."), http_status_code=417)
@@ -39,16 +41,18 @@ def custom(code: str, state: str | dict):
     # Gets the name of the OIDC custom provider.
     provider_name = request_path_components[3]
 
-    # Gets the document of the default Social Login (OIDC) configuration.
-    social_login_provider = frappe.get_doc("Social Login Key", frappe.get_conf().get("custom", provider_name))
+    # Gets the document of the Social Login Key configuration.
+    social_login_provider = frappe.get_doc({"doctype": "Social Login Key", "name": provider_name})
+    
+    # Gets the document of the Social Login Key Extension matching the Social Login Key  configuration
+    social_login_key_extension = frappe.get_doc({'doctype': 'Social Login Key Extension',  'social_login_key_extension_name': provider_name})
+    
+    # extract claims name
     user_id_claim_name = social_login_provider.user_id_property or "sub"
-
-    # Gets the document of the extended OIDC configuration.
-    oidc_extended_configuration = frappe.get_cached_doc('OIDC Extended Configuration', provider_name)
-    given_name_claim_name = oidc_extended_configuration.given_name_claim_name or "given_name"
-    family_name_claim_name = oidc_extended_configuration.family_name_claim_name or "family_name"
-    email_claim_name = oidc_extended_configuration.email_claim_name or "email"
-    groups_claim_name = oidc_extended_configuration.groups_claim_name or "groups"
+    roles_claim_name = social_login_key_extension.role_claim or "roles"
+    given_name_claim_name = social_login_key_extension.given_name_claim or "given_name"
+    family_name_claim_name = social_login_key_extension.family_name_claim or "family_name"
+    audience = social_login_key_extension.audience
 
     token_request_data = {
         "grant_type": "authorization_code",
@@ -65,27 +69,21 @@ def custom(code: str, state: str | dict):
         data=token_request_data,
     ).json()
 
-    id_token = jwt.decode(token_response["id_token"], audience="erpnext", options={"verify_signature": False})
-    username = id_token[user_id_claim_name]
-    email = id_token[email_claim_name]
-    # The groups the user have as received in the token.
-    groups = id_token[groups_claim_name]
-    frappe.logger().debug(f"Groups of user {username}: {groups}")
+    token = jwt.decode(token_response["id_token"], audience, options={"verify_signature": False})
+    
+    # extract claim values 
+    email = token[user_id_claim_name]
 
     # Creates the user if does not exsit, otherwise updates the data according to the claims of the token.
-    if frappe.db.exists("User", {"username": username}):
+    if frappe.db.exists("User", {"email": email}):
         # Fetches the existing user.
         user = frappe.get_doc("User", email)
     else:
-        # Creates a new user.
-        frappe.logger().info(f"Creating a new Frappe user: {username}")
-
         user = frappe.get_doc(
             {
                 "doctype": "User",
-                "first_name": id_token[given_name_claim_name],
-                "last_name": id_token[family_name_claim_name],
-                "username": username,
+                "first_name": token[given_name_claim_name],
+                "last_name": token[family_name_claim_name],
                 "email": email,
                 "send_welcome_email": 0,
                 "enabled": 1,
@@ -96,36 +94,20 @@ def custom(code: str, state: str | dict):
         # Allows making changes on the user (like adding roles) by guest user.
         user.flags.ignore_permissions = True
 
-        default_role = oidc_extended_configuration.default_role
-        user.add_roles(default_role)
-
     if not user.enabled:
-        frappe.respond_as_web_page(_("Not Allowed"), _("User {0} is disabled").format(user.username))
+        frappe.respond_as_web_page(_("Not Allowed"), _("User {0} is disabled").format(user.email))
         return False
 
-    if not user.get_social_login_userid(provider_name):
-        user.set_social_login_userid(provider_name, userid=username)
+    # if not user.get_social_login_userid(provider_name):
+    #     user.set_social_login_userid(provider_name, userid=username)
 
     # Allows all changes on the user in this code without checking if the operation is permitted to be done by the current user.
     user.flags.ignore_permissions = True
+    
+    role_profile_mapping = get_role_profile_mapping(provider_name, token, roles_claim_name, user)
 
-    # The roles the user should have, after mapping the groups received in the token.
-    roles = [group_role_mapping.role for group_role_mapping in oidc_extended_configuration.group_role_mappings if group_role_mapping.group in groups]
-    frappe.logger().debug(f"Frappe roles mapped from token groups of user {username}: {roles}")
-
-    # The current roles of the user in Frappe.
-    frappe.logger().debug(f"Current Frappe role docs of user {username}: {user.get('roles')}")
-    current_roles = {doc.role for doc in user.get("roles")}
-    frappe.logger().debug(f"Current Frappe roles of user {username}: {current_roles}")
-
-    roles_to_remove = [role for role in current_roles if role not in roles]
-    frappe.logger().debug(f"Roles to remove from user {username}: {roles_to_remove}")
-    user.remove_roles(*roles_to_remove)
-
-    roles_to_add = [role for role in roles if role not in current_roles]
-    frappe.logger().debug(f"Roles to add to user {username}: {roles_to_add}")
-    user.add_roles(*roles_to_add)
-
+    # associate user to its role profile
+    user.role_profile_name = role_profile_mapping.role_profile
     user.save()
 
     frappe.local.login_manager.user = email # The main identity of user used by Frappe is email.
@@ -137,6 +119,35 @@ def custom(code: str, state: str | dict):
         desk_user=frappe.local.response.get("message") == "Logged In",
         redirect_to=state.get("redirect_to")
     )
+    
+def get_role_profile_mapping(provider_name, token, roles_claim_name, user):
+    # Gets the documents of the Role Profile Mapping matching the Social Login Key configuration
+    role_profile_mappings = frappe.get_list("Role Profile Mapping", filters={'social_login_key_extension_name': provider_name })
+    
+    # create a dict mapping role_claim_value => role_profile_mapping
+    role_profile_mappings_claim_value_map = {}
+    
+    for role_profile_mapping in role_profile_mappings:
+        role_profile_mappings_claim_value_map[role_profile_mapping.role_claim_value]
+        
+    # extract matching Role Profile Mapping to the roles claims in the token
+    matching_role_profile_mappings = filter(lambda role_claim_value: role_claim_value in role_profile_mappings_claim_value_map, token[roles_claim_name])
+    
+    if not len(matching_role_profile_mappings):
+        frappe.respond_as_web_page(_("Not Allowed"), _("User {0} is disabled").format(user.email))
+        return False
+    
+    # create a dict mapping power => matching_role_profile_mapping
+    matching_role_profile_mappings_power_map = {}
+    
+    for matching_role_profile_mapping in matching_role_profile_mappings:
+        matching_role_profile_mappings_power_map[matching_role_profile_mapping.power]
+        
+    # user role profile mapping match the last item of the dict
+    role_profile_mapping = matching_role_profile_mappings_power_map.values()[len(matching_role_profile_mappings_power_map.values()) - 1]
+    
+    print(f"found role profile mapping {role_profile_mapping.role_profile_mapping_name}, role profile is {role_profile_mapping.role_profile}")
+    return role_profile_mapping
 
 def redirect_post_login(desk_user: bool, redirect_to: str):
     frappe.local.response["type"] = "redirect"

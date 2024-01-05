@@ -1,6 +1,6 @@
-## Oidc Roles Mapping
+## Oidc Roles Profile Mapping
 
-OIDC role mapping capabilities
+OIDC roles profile mapping capabilities
 
 #### License
 

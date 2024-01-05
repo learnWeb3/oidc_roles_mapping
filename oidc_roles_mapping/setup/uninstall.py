@@ -1,18 +1,11 @@
 import frappe
-import yaml
 import os.path
+from oidc_roles_mapping.setup.yaml_parser  import parse
 
 
 def before_uninstall():
     cleanup()
- 
- 
-def parse_yaml():
-    YAML_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    FILE_PATH = os.path.join(YAML_BASE_DIR, "assets/config.yaml")
-    with open(FILE_PATH, 'r') as file:
-        yaml_content = yaml.safe_load(file)
-    return yaml_content
+
 
 def cleanup_role(role={
     "name": "Invoice Manager",
@@ -24,6 +17,10 @@ def cleanup_role(role={
     ]
 }):
     try:
+        role_permissions = frappe.get_list("Custom DocPerm", filters={"role": role['name'], })
+        for role_permission in role_permissions:
+            frappe.delete_doc("Custom DocPerm",   role_permission['name'])
+            
         frappe.delete_doc("Role",   role['name'])
     except frappe.DoesNotExistError:
         print(f"Document { role['name']} does not exist.")
@@ -71,6 +68,13 @@ def cleanup_social_login_key(social_login_key={
         "offline_validate": 0,
 }):
     try:
+        filters = {"social_login_key_name":  social_login_key['name']}
+        # Use frappe.get_list to retrieve the list of documents
+        social_login_extensions_to_delete = frappe.get_list( "Social Login Key Extension", filters=filters)
+        
+        for social_login_extension_to_delete in social_login_extensions_to_delete:
+            frappe.delete_doc("Social Login Key Extension", social_login_extension_to_delete['name'])
+
         frappe.delete_doc("Social Login Key",   social_login_key['name'])
     except frappe.DoesNotExistError:
         print(f"Document {social_login_key['name']} does not exist.")
@@ -81,22 +85,22 @@ def cleanup_social_login_key(social_login_key={
     except Exception as e:
         print(f"Error deleting document {social_login_key['name']}: {e}")
 
-def cleanup_role_mapping(role_mapping={
+def cleanup_role_profile_mapping(role_profile_mapping={
         "name": "superadmin claim to superadmin role profile",
         "role_profile": "superadmin",
         "role_claim_value": "superadmin",
         "client": "keycloak",
 }):
     try:
-        frappe.delete_doc("Role Mapping",   role_mapping['name'])
+        frappe.delete_doc("Role Profile Mapping",   role_profile_mapping['name'])
     except frappe.DoesNotExistError:
-        print(f"Document {role_mapping['name']} does not exist.")
+        print(f"Document {role_profile_mapping['name']} does not exist.")
 
     except frappe.PermissionError:
-        print(f"You do not have permission to delete document {role_mapping['name']}.")
+        print(f"You do not have permission to delete document {role_profile_mapping['name']}.")
 
     except Exception as e:
-        print(f"Error deleting document {role_mapping['name']}: {e}")
+        print(f"Error deleting document {role_profile_mapping['name']}: {e}")
         
         
 def cleanup_custom_doctype(doctype_name):
@@ -115,17 +119,19 @@ def cleanup_custom_doctype(doctype_name):
         print(f"Error deleting Custom DocType {doctype_name}: {e}")
 
 def cleanup():
-    yaml_content = parse_yaml()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file_path = os.path.join(base_dir, "../config/config.yaml")
+    yaml_content = parse(config_file_path)
     roles = yaml_content['roles']
     role_profiles = yaml_content['role_profiles']
     social_login_keys = yaml_content['oidc']['clients']
     role_mappings = yaml_content['role_mappings']
     
-    custom_doc_types = ['Social Login Key Extension', 'Role Mapping']
+    custom_doc_types = ['Social Login Key Extension', 'Role Profile Mapping']
 
-    # cleanup role mapping
-    for role_mapping in role_mappings:
-        cleanup_role_mapping(role_mapping)
+    # cleanup role profile mapping
+    for role_profile_mapping in role_mappings:
+        cleanup_role_profile_mapping(role_profile_mapping)
         
     # cleanup role profiles
     for role_profile in role_profiles:

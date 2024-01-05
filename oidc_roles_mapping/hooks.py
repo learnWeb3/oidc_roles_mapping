@@ -183,7 +183,7 @@ before_uninstall = "oidc_roles_mapping.setup.uninstall.before_uninstall"
 
 # Request Events
 # ----------------
-# before_request = ["oidc_roles_mapping.utils.before_request"]
+before_request = ["oidc_roles_mapping.custom_auth.verify_jwt_token"]
 # after_request = ["oidc_roles_mapping.utils.after_request"]
 
 # Job Events
@@ -228,4 +228,6 @@ before_uninstall = "oidc_roles_mapping.setup.uninstall.before_uninstall"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
+
+required_apps = ["frappe", "erpnext"]
 

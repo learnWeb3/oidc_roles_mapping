@@ -1,20 +1,13 @@
 import frappe
-import yaml
-import os.path
 import json
+import os.path
+from oidc_roles_mapping.setup.yaml_parser  import parse
 
 
 def after_install():
     setup_oidc_roles_mapping()
  
  
-def parse_yaml():
-    YAML_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    FILE_PATH = os.path.join(YAML_BASE_DIR, "assets/config.yaml")
-    with open(FILE_PATH, 'r') as file:
-        yaml_content = yaml.safe_load(file)
-    return yaml_content
-
 
 def create_role_if_not_exists(role={
     "name": "Invoice Manager",
@@ -132,24 +125,24 @@ def create_role_profile_if_not_exists(role_profile={
         print(f"error creating role profile {role_profile['name']} due to error {err} type {type(err)}")
     
 def create_role_mapping(
-    role_mapping={
+    role_profile_mapping={
         "name": "superadmin claim to superadmin role profile",
         "role_profile": "superadmin",
         "role_claim_value": "superadmin",
         "client": "keycloak",
 }): 
     try: 
-        new_role_mapping = frappe.new_doc("Role Mapping")
+        new_role_mapping = frappe.new_doc("Role Profile Mapping")
         new_role_mapping.update({
-            "role_mapping_name": role_mapping['name'],
-            "role_profile": role_mapping['role_profile'],
-            "role_claim_value": role_mapping['role_claim_value'],
-            "social_login_key_name": role_mapping['client']
+            "role_profile_mapping_name": role_profile_mapping['name'],
+            "role_profile": role_profile_mapping['role_profile'],
+            "role_claim_value": role_profile_mapping['role_claim_value'],
+            "social_login_key_name": role_profile_mapping['client']
         })
         new_role_mapping.save()
-        print(f"role mapping between role profile {role_mapping['role_profile']} and role claim value {role_mapping['role_claim_value']} created with success")
+        print(f"role mapping between role profile {role_profile_mapping['role_profile']} and role claim value {role_profile_mapping['role_claim_value']} created with success")
     except Exception as err:
-        print(f"error creating role mapping between role profile {role_mapping['role_profile']} and role claim value {role_mapping['role_claim_value']} due to error {err} type {type(err)}")
+        print(f"error creating role profile mapping between role profile {role_profile_mapping['role_profile']} and role claim value {role_profile_mapping['role_claim_value']} due to error {err} type {type(err)}")
     
 
 def create_social_login_key(social_login_key={
@@ -169,6 +162,8 @@ def create_social_login_key(social_login_key={
         "auth_url_data": "{\"response_type\": \"code\", \"scope\": \"openid profile email\"}",
         "user_claim": "email",  #  user_id_property
         "role_claim": "roles",
+        "given_name_claim": "given_name",
+        "family_name_claim": "family_name",
         "secret_key": "",
         "audience": "",
         "offline_validate": 0,
@@ -203,24 +198,24 @@ def create_social_login_key(social_login_key={
             "role_claim": social_login_key['role_claim'],
             "audience": social_login_key['audience'],
             "offline_validate": social_login_key['offline_validate'],
-            "secret_key": social_login_key['secret_key']
+            "secret_key": social_login_key['secret_key'],
+            "given_name_claim": social_login_key["given_name_claim"],
+            "family_name_claim": social_login_key["family_name_claim"]
         })
         new_social_login_key_extension.save()
         
-        # activate social login key
-        if social_login_key['enable'] == 1:
-            try: 
-                social_login_key_to_activate = frappe.get_doc({
-                    "doctype": "Social Login Key",
-                    "provider_name":  social_login_key['name'],
-                })
-                social_login_key_to_activate.update({
-                    "enable_social_login": social_login_key['enable'], # enable_social_login
-                })
-                social_login_key_to_activate.save()
-                print(f"social login key {social_login_key['name']} activated with success")
-            except Exception as err:
-                print(f"error enabling social login key {social_login_key['name']} due to error {err} type {type(err)}")
+        # # activate social login key
+        # if social_login_key['enable'] == 1:
+        #     try: 
+        #         social_login_key_to_activate = frappe.get_doc({
+        #             "doctype": "Social Login Key",
+        #             "provider_name":  social_login_key['name'],
+        #         })
+        #         social_login_key_to_activate.enable_social_login = 1
+        #         social_login_key_to_activate.save()
+        #         print(f"social login key {social_login_key['name']} activated with success")
+        #     except Exception as err:
+        #         print(f"error enabling social login key {social_login_key['name']} due to error {err} type {type(err)}")
     except Exception as err:
         print(f"error creating social login key {social_login_key['name']} due to error {err} type {type(err)}")
         
@@ -248,7 +243,7 @@ def initialize_social_login_key_extension_doctype():
 def initialize_role_mapping_doctype():
     try:
         JSON_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        FILE_PATH = os.path.join(JSON_BASE_DIR, "../doctype/role_mapping/role_mapping.json")
+        FILE_PATH = os.path.join(JSON_BASE_DIR, "../doctype/role_profile_mapping/role_profile_mapping.json")
         # Read the JSON file
         with open(FILE_PATH, 'r') as file:
             doctype_definition = json.load(file)
@@ -256,18 +251,23 @@ def initialize_role_mapping_doctype():
         # Create the DocType
         doc_type = frappe.get_doc(doctype_definition)
         doc_type.insert(ignore_permissions=True)
-
-        print("Role Mapping DocType initialized successfully.")
+        print("Role Profile Mapping DocType initialized successfully.")
+        
+        # frappe.db.commit()
+        
+        # frappe.db.add_unique("Role Profile Mapping",["role_profile","social_login_key_name"])
 
     except frappe.DuplicateEntryError:
-        print("Role Mapping DocType already exists.")
+        print("Role Profile Mapping DocType already exists.")
 
     except Exception as e:
-        print(f"Error initializing Role Mapping DocType: {e}")
+        print(f"Error initializing Role Profile Mapping DocType: {e}")
 
 
 def setup_oidc_roles_mapping():
-    yaml_content = parse_yaml()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file_path = os.path.join(base_dir, "../config/config.yaml")
+    yaml_content = parse(config_file_path)
     roles = yaml_content['roles']
     role_profiles = yaml_content['role_profiles']
     social_login_keys = yaml_content['oidc']['clients']
@@ -289,8 +289,8 @@ def setup_oidc_roles_mapping():
         create_social_login_key(social_login_key)
     
     # seed role mapping
-    for role_mapping in role_mappings:
-        create_role_mapping(role_mapping)
+    for role_profile_mapping in role_mappings:
+        create_role_mapping(role_profile_mapping)
     
         
     

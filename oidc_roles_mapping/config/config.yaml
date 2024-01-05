@@ -19,6 +19,9 @@ oidc:
       secret_key: ""
       audience: "andrew-erp"
       offline_validate: 0
+      given_name_claim: "given_name"
+      family_name_claim: "family_name"
+
 
 
 roles: 
@@ -100,6 +103,9 @@ role_mappings:
     role_profile: superadmin
     role_claim_value: superadmin
     client: "keycloak"
+    power: 10
   - name: billing-webservice claim to billing-webservice role profile
     role_profile: billing-webservice
     role_claim_value: billing-webservice
+    client: "keycloak"
+    power: 9
