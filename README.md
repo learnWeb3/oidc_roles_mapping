@@ -6,7 +6,7 @@ Adding OIDC roles mapping capabilities to Social Login Key DocType.
 
 This custom frappe application leverages overrides and custom doctypes to provide extension to the Social Login Key core doctype as well as Role Profile Mappings allowing to map Role Profile to Social Login Key with a role claim extracted from the access token provided by your configured OIDC provider.
 
-This custom frappe application uses a config.yaml file located at: /apps/oidc_roles_mapping/oidc_roles_mapping/config/config.yaml, to perform setup operations on app installation, leaving the administrator the task to enable the configured social login key from the admin web interface 
+This custom frappe application uses a config.yaml file located at: /apps/oidc_roles_mapping/oidc_roles_mapping/config/config.yaml, to perform setup operations on app installation, leaving the administrator the task to enable the configured social login key from the admin web interface in order to have a working integration
 
 Here is the format of the config.yaml file with some explanations.
 

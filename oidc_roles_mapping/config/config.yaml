@@ -1,23 +1,23 @@
 oidc:
   clients: 
-    - name:  "keycloak" # provider_name
-      enable: 1 # enable_social_login
+    - name:  "keycloak" 
+      enable: 1
       social_login_provider: "Custom"
       client_id: "andrew-erp"
       client_secret: "rL62kGS9ip6vptERbyEXen140c9aHDLO"
       base_url: "https://login.students-epitech.ovh/realms/andrew"
-      base64icon: "" # icon
-      allow_sign_up: 1 # sign_ups values Allow Deny
-      authorize_uri: "/protocol/openid-connect/auth" # authorize_uri
-      access_token_uri: "/protocol/openid-connect/token" # access_token_url
+      base64icon: "" 
+      allow_sign_up: 1 
+      authorize_uri: "/protocol/openid-connect/auth"
+      access_token_uri: "/protocol/openid-connect/token" 
       redirect_url: "http://localhost:8000/api/method/frappe.integrations.oauth2_logins.custom/keycloak"
       api_endpoint: "https://login.students-epitech.ovh/realms/andrew/protocol/openid-connect/userinfo"
       api_endpoint_args: ""
       auth_url_data: "{\"response_type\": \"code\", \"scope\": \"openid profile email\"}"
-      user_claim: "email"  #  user_id_property
+      user_claim: "email" 
       role_claim: "realm_access.roles"
-      secret_key: ""
-      audience: "andrew-erp"
+      secret_key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArMaSvgeCZSiEj2WE7OP6QBTAQQGR5+yCXEKprN/V69udvSE8ERRU1uUFW8Y4Y+B5SrZEsjgB4WoMltiz23j/0o9HgIf3ftTV49Zz9RHXHJbnN/2QfUtwwU8sg0rVuZ1t16fYiElFt6MqnurMCh+iF/hoeklP3h21yOPZ5MxHcakFtRDEnDiUJhxoHwFB/P2rDTl04wzFevvw165/9y/W+JU7v93Z2npYcB3XRGhzQHt4Co+VVPRnJszfNOG5H5ngvM5ftelOpgUjJhTWmOEtalXntoEl2UybQOp1P3/E4UUeuZ4mIv0xClDYJvx6+KpfJs9buf3Vg9xjX1RvdmmoywIDAQAB"
+      audience: "andrew-app"
       encryption_algorithms: 'RS256'
       given_name_claim: "given_name"
       family_name_claim: "family_name"

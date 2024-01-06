@@ -2,56 +2,93 @@ import frappe
 import jwt
 
 def validate_custom_jwt(**args):
-    # authorization_header = frappe.request.headers.get('Authorization', None)
-    # if not authorization_header: 
-    #     raise Exception()
-    # token = authorization_header.replace("Bearer ")
     
-    # enabled_social_login_keys = frappe.get_list(
-    #     "Social Login Key", 
-    #     filters={"enable_social_login": 1},  
-    #     fields=['role_claim_value', 'power', 'name', 'role_profile', 'social_login_key_name', 'role_profile_mapping_name'], 
-    #     ignore_permissions=True
-    # )
+    content_type = frappe.request.headers.get("Content-Type", None)
     
-    # for enabled_social_login_key in enabled_social_login_keys:
-    #     social_login_key_extension = frappe.get_last_doc(
-    #         'Social Login Key Extension',  
-    #         filters={
-    #             'social_login_key_name': enabled_social_login_key['social_login_key_name']
-    #         }
-    #     )
-    #     user_claim_name = enabled_social_login_key.user_id_property or "sub"
-    #     roles_claim_name = social_login_key_extension.role_claim or "roles"
-    #     roles_claim_name = social_login_key_extension.role_claim or "roles"
-    #     public_key = social_login_key_extension.secret_key
+    # content-type is not application/json dismiss
+    if not content_type == "application/json":
+        return 
+    
+    authorization_header = frappe.request.headers.get('Authorization', None)
+    
+    if not authorization_header: 
+        return error_response(400, message="Missing Authorization header")
+    
+    token = authorization_header.replace("Bearer ", "")
+    
+    if not token: 
+        return error_response(400, message="Missing Bearer token")
+    
+    enabled_social_login_keys = frappe.get_list(
+        "Social Login Key", 
+        filters={"enable_social_login": 1},  
+        fields=['provider_name', 'enable_social_login', 'user_id_property'], 
+        ignore_permissions=True
+    )
+    
+    # no external providers have been configured dismiss
+    if  len(enabled_social_login_keys) == 0:
+        return
+    
+    for enabled_social_login_key in enabled_social_login_keys:
         
-    #     audience = social_login_key_extension.audience
-        
-    #     decoded_token = jwt.decode(token, audience, public_key, algorithms=["RS256"])
-        
-    #     email = decoded_token[user_claim_name]
-        
-    #     user_exists = frappe.db.exists("User", {"email": email})
-        
-    #     if not user_exists:
-    #         return False
-        
-    #     user = frappe.get_doc("User", email)
-        
-    #     # Allows making changes on the user (like adding roles) by guest user.
-    #     user.flags.ignore_permissions = True
+        try: 
+            social_login_key_extension = frappe.get_last_doc(
+                'Social Login Key Extension',  
+                filters={
+                    'social_login_key_name': enabled_social_login_key['provider_name']
+                }
+            )
+            user_claim_name = enabled_social_login_key.user_id_property or "sub"
+            roles_claim_name = social_login_key_extension.role_claim or "roles"
+            public_key = f"-----BEGIN PUBLIC KEY-----\n{social_login_key_extension.secret_key}\n-----END PUBLIC KEY-----"
+            encryption_algorithms = social_login_key_extension.encryption_algorithms or "RS256"
+            
+            audience = social_login_key_extension.audience
+            decoded_token = jwt.decode(token, public_key, algorithms=[encryption_algorithms], audience=audience)
+            email = decoded_token[user_claim_name]
+            
+            user_exists = frappe.db.exists("User", {"email": email})
+            
+            if not user_exists:
+                raise Exception("User does not exists")
+            
+            user = frappe.get_doc("User", email)
+            
+            # Allows making changes on the user (like adding roles) by guest user.
+            user.flags.ignore_permissions = True
 
-    #     if not user.enabled:
-    #         return False
-         
-    #     role_profile_mapping = get_role_profile_mapping(enabled_social_login_key['social_login_key_name'], decoded_token, roles_claim_name, user )
-        
-    #     user.role_profile_name = role_profile_mapping.role_profile
-    #     user.save()
-
+            if not user.enabled:
+                raise Exception("User must be enabled")
+            
+            role_profile_mapping = get_role_profile_mapping(enabled_social_login_key['provider_name'], decoded_token, roles_claim_name, user )
+            
+            user.role_profile_name = role_profile_mapping.role_profile
+            user.save()
+            
+            frappe.set_user(user.email)
+            
+            return True
+            
+        except Exception as err:
+            print(f"JWT Authentication error {err}")
+            
     
-    pass
+    return error_response(401, message="You are not authorized to access this resource")
+
+
+def error_response(http_status_code=401, message="You are not authorized to access this resource"):
+    errors_status_map = {
+        400: "Bad Request",
+        401: "Unauthorized",
+        500: "Internal Server Error"
+    }
+
+    frappe.local.response['http_status_code'] = http_status_code
+    frappe.local.response['message'] = message
+    frappe.local.response['status'] = errors_status_map[http_status_code],
+    frappe.local.response['type'] = 'json'
+
 
 
 def get_role_profile_mapping(provider_name, decoded_token, roles_claim_name, user):
