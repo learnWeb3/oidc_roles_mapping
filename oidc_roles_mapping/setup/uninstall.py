@@ -19,9 +19,9 @@ def cleanup_role(role={
     try:
         role_permissions = frappe.get_list("Custom DocPerm", filters={"role": role['name'], })
         for role_permission in role_permissions:
-            frappe.delete_doc("Custom DocPerm",   role_permission['name'])
+            frappe.delete_doc("Custom DocPerm",   role_permission['name'], )
             
-        frappe.delete_doc("Role",   role['name'])
+        frappe.delete_doc("Role",   role['name'], force=True)
     except frappe.DoesNotExistError:
         print(f"Document { role['name']} does not exist.")
 
@@ -36,7 +36,7 @@ def cleanup_role_profile(role_profile={
     "roles": ["Invoice Manager"]
 }):
     try:
-        frappe.delete_doc("Role Profile",   role_profile['name'])
+        frappe.delete_doc("Role Profile",   role_profile['name'], )
     except frappe.DoesNotExistError:
         print(f"Document {role_profile['name']} does not exist.")
 
@@ -65,7 +65,7 @@ def cleanup_social_login_key(social_login_key={
         "role_claim": "roles",
         "secret_key": "",
         "audience": "",
-        "offline_validate": 0,
+        "encryption_algorithms": 'RS256'
 }):
     try:
         filters = {"social_login_key_name":  social_login_key['name']}
@@ -73,9 +73,9 @@ def cleanup_social_login_key(social_login_key={
         social_login_extensions_to_delete = frappe.get_list( "Social Login Key Extension", filters=filters)
         
         for social_login_extension_to_delete in social_login_extensions_to_delete:
-            frappe.delete_doc("Social Login Key Extension", social_login_extension_to_delete['name'])
+            frappe.delete_doc("Social Login Key Extension", social_login_extension_to_delete['name'], )
 
-        frappe.delete_doc("Social Login Key",   social_login_key['name'])
+        frappe.delete_doc("Social Login Key",   social_login_key['name'], )
     except frappe.DoesNotExistError:
         print(f"Document {social_login_key['name']} does not exist.")
 
@@ -92,7 +92,7 @@ def cleanup_role_profile_mapping(role_profile_mapping={
         "client": "keycloak",
 }):
     try:
-        frappe.delete_doc("Role Profile Mapping",   role_profile_mapping['name'])
+        frappe.delete_doc("Role Profile Mapping",   role_profile_mapping['name'], )
     except frappe.DoesNotExistError:
         print(f"Document {role_profile_mapping['name']} does not exist.")
 
@@ -105,7 +105,7 @@ def cleanup_role_profile_mapping(role_profile_mapping={
         
 def cleanup_custom_doctype(doctype_name):
     try:
-        frappe.delete_doc("DocType", doctype_name, ignore_permissions=True)
+        frappe.delete_doc("DocType", doctype_name, ignore_permissions=True, )
 
         print(f"Custom DocType {doctype_name} deleted successfully.")
 

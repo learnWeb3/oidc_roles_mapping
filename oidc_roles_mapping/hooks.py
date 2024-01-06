@@ -220,9 +220,9 @@ override_whitelisted_methods = {
 # Authentication and authorization
 # --------------------------------
 
-# auth_hooks = [
-# 	"oidc_roles_mapping.auth.validate"
-# ]
+auth_hooks = [
+	"oidc_roles_mapping.overrides.auth.validate_custom_jwt"
+]
 
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True

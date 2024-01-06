@@ -31,7 +31,7 @@ oidc:
       role_claim: \"realm_access.roles\" # role claim name in the access token provided by your OIDC provider in the form of a json path
       secret_key: \"\" # secret key for offline token validation when calling api
       audience: \"<YOUR AUDIENCE>\" # audience to be validated
-      offline_validate: 0 # allow offline validation (secret_key must be set)
+      encryption_algorithms: 'RS256' # secret key encryption algorithms RS256,HS256 default is RS256 
       given_name_claim: \"given_name\" # user firstname access token claim used for signup if enable and user does not exists yet
       family_name_claim: \"family_name\" # user lastname access token claim used for signup if enable and user does not exists yet
 roles: 
@@ -145,7 +145,7 @@ oidc:
       role_claim: \"realm_access.roles\" # role claim name in the access token provided by your OIDC provider in the form of a json path
       secret_key: \"\" # secret key for offline token validation when calling api
       audience: \"<YOUR AUDIENCE>\" # audience to be validated
-      offline_validate: 0 # allow offline validation (secret_key must be set)
+      encryption_algorithms: 'RS256' # secret key encryption algorithms RS256,HS256 default is RS256
       given_name_claim: \"given_name\" # user firstname access token claim used for signup if enable and user does not exists yet
       family_name_claim: \"family_name\" # user lastname access token claim used for signup if enable and user does not exists yet
 roles: 

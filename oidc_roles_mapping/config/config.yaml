@@ -18,7 +18,7 @@ oidc:
       role_claim: "realm_access.roles"
       secret_key: ""
       audience: "andrew-erp"
-      offline_validate: 0
+      encryption_algorithms: 'RS256'
       given_name_claim: "given_name"
       family_name_claim: "family_name"
 

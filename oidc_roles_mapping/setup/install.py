@@ -168,7 +168,7 @@ def create_social_login_key(social_login_key={
         "family_name_claim": "family_name",
         "secret_key": "",
         "audience": "",
-        "offline_validate": 0,
+        "encryption_algorithms": 'RS256',
 }):
     
     try: 
@@ -199,7 +199,7 @@ def create_social_login_key(social_login_key={
             "social_login_key_name": social_login_key['name'],
             "role_claim": social_login_key['role_claim'],
             "audience": social_login_key['audience'],
-            "offline_validate": social_login_key['offline_validate'],
+            "encryption_algorithms": social_login_key['encryption_algorithms'],
             "secret_key": social_login_key['secret_key'],
             "given_name_claim": social_login_key["given_name_claim"],
             "family_name_claim": social_login_key["family_name_claim"]
