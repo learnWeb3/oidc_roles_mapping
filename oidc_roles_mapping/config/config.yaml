@@ -1,34 +1,52 @@
 oidc:
-  clients: 
-    - name:  "keycloak" 
+  clients:
+    - name: "andrew"
       enable: 1
       social_login_provider: "Custom"
       client_id: "andrew-erp"
       client_secret: "rL62kGS9ip6vptERbyEXen140c9aHDLO"
       base_url: "https://login.students-epitech.ovh/realms/andrew"
-      base64icon: "" 
-      allow_sign_up: 1 
+      base64icon: ""
+      allow_sign_up: 1
       authorize_uri: "/protocol/openid-connect/auth"
-      access_token_uri: "/protocol/openid-connect/token" 
-      redirect_url: "http://localhost:8000/api/method/frappe.integrations.oauth2_logins.custom/keycloak"
+      access_token_uri: "/protocol/openid-connect/token"
+      redirect_url: "http://localhost:8000/api/method/frappe.integrations.oauth2_logins.custom/andrew"
       api_endpoint: "https://login.students-epitech.ovh/realms/andrew/protocol/openid-connect/userinfo"
       api_endpoint_args: ""
-      auth_url_data: "{\"response_type\": \"code\", \"scope\": \"openid profile email\"}"
-      user_claim: "email" 
+      auth_url_data: '{"response_type": "code", "scope": "openid profile email"}'
+      user_claim: "email"
+      service_account_claim: "client_id"
+      service_account_claim_suffix: "@service-account.com"
       role_claim: "realm_access.roles"
       secret_key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArMaSvgeCZSiEj2WE7OP6QBTAQQGR5+yCXEKprN/V69udvSE8ERRU1uUFW8Y4Y+B5SrZEsjgB4WoMltiz23j/0o9HgIf3ftTV49Zz9RHXHJbnN/2QfUtwwU8sg0rVuZ1t16fYiElFt6MqnurMCh+iF/hoeklP3h21yOPZ5MxHcakFtRDEnDiUJhxoHwFB/P2rDTl04wzFevvw165/9y/W+JU7v93Z2npYcB3XRGhzQHt4Co+VVPRnJszfNOG5H5ngvM5ftelOpgUjJhTWmOEtalXntoEl2UybQOp1P3/E4UUeuZ4mIv0xClDYJvx6+KpfJs9buf3Vg9xjX1RvdmmoywIDAQAB"
       audience: "andrew-app"
-      encryption_algorithms: 'RS256'
+      encryption_algorithms: "RS256"
       given_name_claim: "given_name"
       family_name_claim: "family_name"
 
-
-
-roles: 
-  - name: Invoice Manager 
-    rights: 
+roles:
+  - name: Invoice Manager
+    rights:
       - doc_type: Sales Invoice
-        permissions: 
+        permissions:
+          read: 1
+          write: 1
+          create: 1
+          delete: 1
+          submit: 1
+          cancel: 1
+          amend: 1
+          print: 1
+          email: 1
+          report: 1
+          import: 1
+          export: 1
+          share: 1
+
+  - name: Customer Manager
+    rights:
+      - doc_type: Customer
+        permissions:
           read: 1
           write: 1
           create: 1
@@ -45,11 +63,14 @@ roles:
 
 role_profiles:
   - name: billing-webservice
-    roles: 
+    roles:
       - Invoice Manager
+      - Customer Manager
+      - Sales User
+      - Accounts User
 
   - name: superadmin
-    roles: 
+    roles:
       - "Academics User"
       - "Accounts Manager"
       - "Accounts User"
@@ -98,14 +119,14 @@ role_profiles:
       - "Website Manager"
       - "Workspace Manager"
 
-role_mappings: 
+role_mappings:
   - name: superadmin claim to superadmin role profile
     role_profile: superadmin
     role_claim_value: superadmin
-    client: "keycloak"
+    client: "andrew"
     power: 10
   - name: billing-webservice claim to billing-webservice role profile
     role_profile: billing-webservice
     role_claim_value: billing-webservice
-    client: "keycloak"
+    client: "andrew"
     power: 9

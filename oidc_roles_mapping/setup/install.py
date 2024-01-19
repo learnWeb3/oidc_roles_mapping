@@ -169,6 +169,8 @@ def create_social_login_key(social_login_key={
         "secret_key": "",
         "audience": "",
         "encryption_algorithms": 'RS256',
+        "service_account_claim": "client_id",
+        "service_account_claim_suffix": "@service-account.com"
 }):
     
     try: 
@@ -202,7 +204,9 @@ def create_social_login_key(social_login_key={
             "encryption_algorithms": social_login_key['encryption_algorithms'],
             "secret_key": social_login_key['secret_key'],
             "given_name_claim": social_login_key["given_name_claim"],
-            "family_name_claim": social_login_key["family_name_claim"]
+            "family_name_claim": social_login_key["family_name_claim"],
+            "service_account_id_property": social_login_key["service_account_claim"],
+            "service_account_id_property_suffix": social_login_key["service_account_claim_suffix"]
         })
         new_social_login_key_extension.save()
         
@@ -254,10 +258,6 @@ def initialize_role_mapping_doctype():
         doc_type = frappe.get_doc(doctype_definition)
         doc_type.insert(ignore_permissions=True)
         print("Role Profile Mapping DocType initialized successfully.")
-        
-        # frappe.db.commit()
-        
-        # frappe.db.add_unique("Role Profile Mapping",["role_profile","social_login_key_name"])
 
     except frappe.DuplicateEntryError:
         print("Role Profile Mapping DocType already exists.")

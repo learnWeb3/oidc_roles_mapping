@@ -41,20 +41,29 @@ def validate_custom_jwt(**args):
             )
             user_claim_name = enabled_social_login_key.user_id_property or "sub"
             roles_claim_name = social_login_key_extension.role_claim or "roles"
+            service_account_claim_name = social_login_key_extension.service_account_id_property or "client_id"
+            service_account_claim_suffix = social_login_key_extension.service_account_id_property_suffix or "@service-account.com"
             public_key = f"-----BEGIN PUBLIC KEY-----\n{social_login_key_extension.secret_key}\n-----END PUBLIC KEY-----"
             encryption_algorithms = social_login_key_extension.encryption_algorithms or "RS256"
             
             audience = social_login_key_extension.audience
-            decoded_token = jwt.decode(token, public_key, algorithms=[encryption_algorithms], audience=audience)
-            email = decoded_token[user_claim_name]
+            # print( "************************", token, "************************")
             
-            user_exists = frappe.db.exists("User", {"email": email})
+            # decoded_token = jwt.decode(token, public_key, algorithms=[encryption_algorithms], audience=audience)
+            decoded_token = jwt.decode(token, public_key, algorithms=[encryption_algorithms])
+            user_exists =  frappe.db.exists(
+                "User", {"email": decoded_token.get(user_claim_name, "")}
+            ) or frappe.db.exists(
+                "User", {"email": decoded_token.get(service_account_claim_name, "") + service_account_claim_suffix}
+            )
             
             if not user_exists:
                 raise Exception("User does not exists")
             
-            user = frappe.get_doc("User", email)
+            user = get_user_or_service_account(decoded_token, user_claim_name, service_account_claim_name, service_account_claim_suffix)
             
+            print("++++++++++++", user, "++++++++++")
+        
             # Allows making changes on the user (like adding roles) by guest user.
             user.flags.ignore_permissions = True
 
@@ -90,7 +99,20 @@ def error_response(http_status_code=401, message="You are not authorized to acce
     frappe.local.response['type'] = 'json'
 
 
-
+def get_user_or_service_account(decoded_token, user_claim_name, service_account_claim_name, service_account_claim_suffix):
+    try:
+        return frappe.get_last_doc(
+            "User",
+            filters={'email': decoded_token.get(user_claim_name, "")}) 
+    except frappe.DoesNotExistError:
+       try: 
+            return frappe.get_last_doc(
+                "User", 
+                filters={"email": decoded_token.get(service_account_claim_name, "") + service_account_claim_suffix}
+            )
+       except frappe.DoesNotExistError:
+           return None
+      
 def get_role_profile_mapping(provider_name, decoded_token, roles_claim_name, user):
     # Gets the documents of the Role Profile Mapping matching the Social Login Key configuration
     role_profile_mappings = frappe.get_list(
